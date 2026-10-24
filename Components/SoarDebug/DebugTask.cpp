@@ -9,6 +9,7 @@
 #include <SoarDebug/Inc/DebugTask.hpp>
 #include "Command.hpp"
 #include "CubeUtils.hpp"
+#include "CANTask.hpp"
 #include <cstring>
 
 #include "stm32g4xx_hal.h"
@@ -107,6 +108,9 @@ void DebugTask::HandleDebugMessage(const char *msg)
                xPortGetMinimumEverFreeHeapSize());
     SOAR_PRINT("Debug Task Runtime  \t: %d ms\n\n",
                TICKS_TO_MS(xTaskGetTickCount()));
+  }
+  else if (strcmp(msg, "switch daughter") == 0) {
+	  CANBusTask::Inst().SendCommand({TASK_SPECIFIC_COMMAND, CANTASK_SWITCH_DAUGHTER});
   }
   else
   {

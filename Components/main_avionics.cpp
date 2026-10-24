@@ -9,14 +9,19 @@
 #include "DebugTask.hpp"
 #include "SystemDefines.hpp"
 #include "UARTDriver.hpp"
+#include "UARTTask.hpp"
+#include "CANTask.hpp"
 #include "CubeTask.hpp"
 
 /* Drivers ------------------------------------------------------------------*/
 namespace Driver
 {
-  UARTDriver usart3(USART3);
-  UARTDriver usart2(USART2);
-}
+  UARTDriver usart3(USART3); //my board
+  UARTDriver usart2(USART2); //other board
+
+
+} // sends and receives data through TX (transmit) and RX (receive) signals
+//USB-C through ST-LINK --> reuse UARTDriver code
 
 /* Interface Functions
  * ------------------------------------------------------------*/
@@ -27,8 +32,10 @@ namespace Driver
 void run_main()
 {
   // Init Tasks
+  UARTTask::Inst().InitTask();
   CubeTask::Inst().InitTask();
   DebugTask::Inst().InitTask();
+  CANBusTask::Inst().InitTask();
 
   // Print System Boot Info : Warning, don't queue more than 10 prints before
   // scheduler starts

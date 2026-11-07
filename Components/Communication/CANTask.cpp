@@ -19,7 +19,7 @@
 /************************************
  * PRIVATE MACROS AND DEFINES
  ************************************/
-extern FDCAN_HandleTypeDef hfdcan1;
+extern FDCAN_HandleTypeDef hfdcan2;
 /************************************
  * VARIABLES
  ************************************/
@@ -54,7 +54,7 @@ void CANBusTask::SwitchToDaughter() {
 	uint8_t BOARD_TYPE = CAN_DEV_SEB;
 	    	uint8_t SLOT_NUMBER = 123;
 
-	    	dau = new CanAutoNodeDaughter{&hfdcan1,
+	    	dau = new CanAutoNodeDaughter{&hfdcan2,
 	    		SOL_Init,
 	    		SOL_COUNT,
 				BOARD_TYPE,
@@ -126,7 +126,7 @@ void CANBusTask::HandleCommand(Command& cm)
 {
     switch (cm.GetCommand()) {
 
-    case CANTASK_SWITCH_DAUGHTER: {
+    case SEB_DAUGHTER: {
     	if (currentMode == SEB_MOTHER) {
     		if (mother != nullptr) {
     			delete mother;
@@ -140,7 +140,7 @@ void CANBusTask::HandleCommand(Command& cm)
     	SwitchToDaughter();
     }
 
-    case CANTASK_SWITCH_MOTHER: {
+    case SEB_MOTHER: {
     	if (currentMode == SEB_DAUGHTER) {
     	   if (dau != nullptr) {
     	    	delete dau;
@@ -150,7 +150,7 @@ void CANBusTask::HandleCommand(Command& cm)
     		   break;
     	   }
     	}
-    	mother = new CanAutoNodeMotherboard{&hfdcan1};
+    	mother = new CanAutoNodeMotherboard{&hfdcan2};
     	currentMode = SEB_MOTHER;
     }
 

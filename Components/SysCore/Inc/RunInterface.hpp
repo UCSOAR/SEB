@@ -27,7 +27,7 @@ void run_interface();
 #ifdef __cplusplus
 extern "C" {
 #endif
-void cpp_USART2_IRQHandler();
+void cpp_USART3_IRQHandler();
 #ifdef __cplusplus
 }
 #endif

@@ -24,8 +24,8 @@
  * TYPEDEFS
  ************************************/
 enum CANTASK_COMMANDS {
-	CANTASK_SWITCH_DAUGHTER,
-	CANTASK_SWITCH_MOTHER
+	DAUGHTER,
+	MOTHER
 };
 
 /************************************
@@ -41,6 +41,7 @@ public:
     }
 
     void InitTask();
+    void SwitchToDaughter();
 
 protected:
     static void RunTask(void* pvParams) { CANBusTask::Inst().Run(pvParams); } // Static Task Interface, passes control to the instance Run();

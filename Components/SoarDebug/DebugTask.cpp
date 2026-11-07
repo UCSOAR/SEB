@@ -110,8 +110,11 @@ void DebugTask::HandleDebugMessage(const char *msg)
                TICKS_TO_MS(xTaskGetTickCount()));
   }
   else if (strcmp(msg, "switch daughter") == 0) {
-	  CANBusTask::Inst().SendCommand({TASK_SPECIFIC_COMMAND, CANTASK_SWITCH_DAUGHTER});
+	  CANBusTask::Inst().SendCommand({TASK_SPECIFIC_COMMAND, DAUGHTER});
   }
+  else if (strcmp(msg, "switch mother") == 0) {
+  	  CANBusTask::Inst().SendCommand({TASK_SPECIFIC_COMMAND, MOTHER});
+   }
   else
   {
     // Single character command, or unknown command

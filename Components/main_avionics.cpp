@@ -17,7 +17,6 @@
 namespace Driver
 {
   UARTDriver usart3(USART3); //my board
-  UARTDriver usart2(USART2); //other board
 
 
 } // sends and receives data through TX (transmit) and RX (receive) signals

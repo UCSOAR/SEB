@@ -1,21 +1,10 @@
-/*
- * CANBusTask.cpp
- *
- *  Created on: Oct. 10, 2026
- *      Author: adam
- */
 /**
  ********************************************************************************
  * @file    ${CANTask.cpp}
  * @author  ${Alina}
  * @date    ${Oct 24, 2026}
- * @brief   This is a template source file to create a new task in our firmware
- *
- * Setup Steps
- * 1. Define the Task Queue Depth in SystemDefines.hpp
- * 2. Define the Task Stack Depth in SystemDefines.hpp
- * 3. Define the Task Priority in SystemDefines.hpp
- * 4. Replace all placeholders marked with a $ sign
+ * @brief   This is a source file that initializes a CANBusTask that can switch the
+ * 			SEB to be either a mother or daughter through UART.
  ********************************************************************************
  */
 
@@ -26,8 +15,6 @@
 #include "SystemDefines.hpp"
 #include "CANBusTargets.hpp"
 #include "SOLLogs.hpp"
-
-
 
 /************************************
  * PRIVATE MACROS AND DEFINES
@@ -53,18 +40,34 @@ CANBusTask::CANBusTask() : Task(TASK_CAN_QUEUE_DEPTH_OBJS)
 {
 
 }
+enum SEBSetting {
+	SEB_MOTHER,
+	SEB_DAUGHTER
+};
+SEBSetting currentMode = SEB_DAUGHTER;
 
-
-bool isDaughter = false;
-bool isMother = false;
 /**
  * @brief Initialize the CANBusTask
  *        Do not modify this function aside from adding the task name
  */
+void CANBusTask::SwitchToDaughter() {
+	uint8_t BOARD_TYPE = CAN_DEV_SEB;
+	    	uint8_t SLOT_NUMBER = 123;
+
+	    	dau = new CanAutoNodeDaughter{&hfdcan1,
+	    		SOL_Init,
+	    		SOL_COUNT,
+				BOARD_TYPE,
+				SLOT_NUMBER,
+				CAN_GSE_TARGET_PT1
+	    	};
+	    	dau->TryRequestingJoiningNetwork();
+	    	currentMode = SEB_DAUGHTER;
+}
 void CANBusTask::InitTask()
 {
     // Make sure the task is not already initialized
-    SOAR_ASSERT(rtTaskHandle == nullptr, "Cannot initialize watchdog task twice");
+    SOAR_ASSERT(rtTaskHandle == nullptr, "Cannot initialize CAN task twice");
 
     BaseType_t rtValue =
         xTaskCreate((TaskFunction_t)CANBusTask::RunTask,
@@ -74,24 +77,10 @@ void CANBusTask::InitTask()
             (UBaseType_t){TASK_CAN_PRIORITY},
             (TaskHandle_t*)&rtTaskHandle);
 
-                SOAR_ASSERT(rtValue == pdPASS, "CANBusTask::InitTask() - xTaskCreate() failed");
+            SOAR_ASSERT(rtValue == pdPASS, "CANBusTask::InitTask() - xTaskCreate() failed");
 
 
-	 uint8_t BOARD_TYPE = CAN_DEV_SEB;
-	 uint8_t SLOT_NUMBER = 123; // was intended to be used at some point in development but decided not to.
-	 	 	 	 	 	 	 	 // you can still use it as a way to identify boards.
-
-    //init canbus these will have to be configured in the ioc.
-	 // The SOL_INIT and SOL_COUNT macros are defined in the LogTypes folder in CommunicationSystemsSubmodule.
-	 // In this example, they are for the FSB SOL board, but new ones for your board should be created there.
-    dau = new CanAutoNodeDaughter{&hfdcan1,
-    	SOL_Init,
-		SOL_COUNT,
-		BOARD_TYPE,
-		SLOT_NUMBER,
-		CAN_GSE_TARGET_PT1
-    };
-    //HAL_GPIO_WritePin(CAN_Standby_GPIO_Port, CAN_Standby_Pin, GPIO_PIN_RESET);
+            SwitchToDaughter();
 }
 
 /**
@@ -102,7 +91,8 @@ void CANBusTask::Run(void * pvParams)
 {
 
     while (1) {
-    	if (isDaughter) {
+    	if (currentMode == SEB_DAUGHTER) {
+    		dau->CheckCANCommands();
 			if(dau->GetCurrentState() == dau->READY) {
 				RecieveData();
 			} else {
@@ -110,7 +100,7 @@ void CANBusTask::Run(void * pvParams)
 				dau->TryRequestingJoiningNetwork();
 			}
     	}
-    	if (isMother) {
+    	if (currentMode == SEB_MOTHER) {
     		mother->CheckCANCommands();
     		// Receive heartbeat from daughter boards
     		if (mother->GetTicksSinceLastHeartbeat() > 500) {
@@ -125,11 +115,6 @@ void CANBusTask::Run(void * pvParams)
         }
         HAL_Delay(10);
 
-        // How you might send a message, replacing the LOGID with a LOGID define from the LogTypes folder.
-        //dau->SendMessageToMotherboardByLogID(LOGID, (uint8_t*)DATA_PTR);
-
-
-
     }
 }
 
@@ -142,40 +127,31 @@ void CANBusTask::HandleCommand(Command& cm)
     switch (cm.GetCommand()) {
 
     case CANTASK_SWITCH_DAUGHTER: {
-    	if (isMother == true) {
+    	if (currentMode == SEB_MOTHER) {
     		if (mother != nullptr) {
     			delete mother;
+    			mother = nullptr;
+    		}
+    		else {
+    			break;
     		}
     	}
 
-    	uint8_t BOARD_TYPE = CAN_DEV_SEB;
-    	uint8_t SLOT_NUMBER = 123; // was intended to be used at some point in development but decided not to.
-    		 	 	 	 	 	 	 	 // you can still use it as a way to identify boards.
-
-    	    //init canbus these will have to be configured in the ioc.
-    		 // The SOL_INIT and SOL_COUNT macros are defined in the LogTypes folder in CommunicationSystemsSubmodule.
-    		 // In this example, they are for the FSB SOL board, but new ones for your board should be created there.
-    	dau = new CanAutoNodeDaughter{&hfdcan1,
-    		SOL_Init,
-    		SOL_COUNT,
-			BOARD_TYPE,
-			SLOT_NUMBER,
-			CAN_GSE_TARGET_PT1
-    	};
-    	dau->TryRequestingJoiningNetwork();
-    	isDaughter = true;
-    	isMother = false;
+    	SwitchToDaughter();
     }
 
     case CANTASK_SWITCH_MOTHER: {
-    	if (isDaughter == true) {
+    	if (currentMode == SEB_DAUGHTER) {
     	   if (dau != nullptr) {
     	    	delete dau;
+    	    	dau = nullptr;
     	    }
+    	   else {
+    		   break;
+    	   }
     	}
     	mother = new CanAutoNodeMotherboard{&hfdcan1};
-    	isMother = true;
-    	isDaughter = false;
+    	currentMode = SEB_MOTHER;
     }
 
     default:
